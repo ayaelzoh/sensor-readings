@@ -111,7 +111,7 @@ def update_dashboard():
             hourly_placeholder.plotly_chart(fig_hourly, use_container_width=True)
 
         # Pause briefly before fetching new data and updating the charts
-        time.sleep(60)  # Adjust the pause duration as needed
+        time.sleep(5)  # Adjust the pause duration as needed
 
 # Start the dashboard update loop
 update_dashboard()
