@@ -73,7 +73,7 @@ def create_line_chart(df, title):
     return fig
 
 # Create placeholders for metrics and line charts
-metric_columns = st.columns(5)
+metric_placeholders = st.columns(5)
 realtime_placeholder = st.empty()
 hourly_placeholder = st.empty()
 
@@ -84,30 +84,34 @@ def update_metrics(df, differences):
         if col in df.columns:
             current_value = df[col].iloc[-1]
             delta_value = differences[col] if not differences.empty else 0
-            metric_columns[i].metric(col, value=current_value, delta=delta_value)
+            metric_placeholders[i].metric(col, value=current_value, delta=delta_value)
 
 # Continuous loop to update metrics and line charts
-while True:
-    # Fetch real-time data
-    df = fetch_data()
+def update_dashboard():
+    while True:
+        # Fetch real-time data
+        df = fetch_data()
 
-    if not df.empty:
-        # Calculate differences between previous and current data
-        differences = df.diff().iloc[-1]
+        if not df.empty:
+            # Calculate differences between previous and current data
+            differences = df.diff().iloc[-1]
 
-        # Update metrics
-        update_metrics(df, differences)
+            # Update metrics
+            update_metrics(df, differences)
 
-        # Create real-time line chart
-        fig_realtime = create_line_chart(df.tail(2000), 'Real-Time Sensor Readings')
-        realtime_placeholder.plotly_chart(fig_realtime, use_container_width=True)
+            # Create real-time line chart
+            fig_realtime = create_line_chart(df.tail(2000), 'Real-Time Sensor Readings')
+            realtime_placeholder.plotly_chart(fig_realtime, use_container_width=True)
 
-        # Resample data to hourly intervals and calculate the mean value
-        df_hourly_avg = df.resample('H').mean()
+            # Resample data to hourly intervals and calculate the mean value
+            df_hourly_avg = df.resample('H').mean()
 
-        # Create hourly line chart
-        fig_hourly = create_line_chart(df_hourly_avg, 'Average Hourly Sensor Readings')
-        hourly_placeholder.plotly_chart(fig_hourly, use_container_width=True)
+            # Create hourly line chart
+            fig_hourly = create_line_chart(df_hourly_avg, 'Average Hourly Sensor Readings')
+            hourly_placeholder.plotly_chart(fig_hourly, use_container_width=True)
 
-    # Pause briefly before fetching new data and updating the charts
-    time.sleep(5)  # Adjust the pause duration as needed
+        # Pause briefly before fetching new data and updating the charts
+        time.sleep(60)  # Adjust the pause duration as needed
+
+# Start the dashboard update loop
+update_dashboard()
