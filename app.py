@@ -33,7 +33,7 @@ spreadsheet = client.open("HerbieData")
 sheet = spreadsheet.worksheet("Forestias-0001")
 
 # Function to fetch data from Google Sheet and preprocess it
-@st.cache_data(ttl=10)  # Adjust cache duration as needed (e.g., 5-15 seconds)
+@st.cache_data(ttl=60)  # Cache the data for 60 seconds to prevent continuous repetition
 def fetch_data():
     # Fetch all records from the sheet
     data = sheet.get_all_records()
@@ -86,14 +86,10 @@ def update_metrics(df, differences):
             delta_value = differences[col] if not differences.empty else 0
             metric_columns[i].metric(col, value=current_value, delta=delta_value)
 
-# Continuously update metrics and line charts
+# Continuous loop to update metrics and line charts
 while True:
     # Fetch real-time data
-    try:
-        df = fetch_data()
-    except Exception as e:
-        print(f"Error fetching data: {e}")
-        df = pd.DataFrame()  # Handle errors gracefully (e.g., display error message)
+    df = fetch_data()
 
     if not df.empty:
         # Calculate differences between previous and current data
@@ -102,4 +98,16 @@ while True:
         # Update metrics
         update_metrics(df, differences)
 
-        # Create real
+        # Create real-time line chart
+        fig_realtime = create_line_chart(df.tail(2000), 'Real-Time Sensor Readings')
+        realtime_placeholder.plotly_chart(fig_realtime, use_container_width=True)
+
+        # Resample data to hourly intervals and calculate the mean value
+        df_hourly_avg = df.resample('H').mean()
+
+        # Create hourly line chart
+        fig_hourly = create_line_chart(df_hourly_avg, 'Average Hourly Sensor Readings')
+        hourly_placeholder.plotly_chart(fig_hourly, use_container_width=True)
+
+    # Pause briefly before fetching new data and updating the charts
+    time.sleep(5)  # Adjust the pause duration as needed
