@@ -78,7 +78,7 @@ realtime_placeholder = st.empty()
 hourly_placeholder = st.empty()
 
 # Initialize metrics values
-metrics_values = {metric: 0 for metric in ['Light', 'Water', 'Soil Moisture', 'Temperature', 'Humidity']}
+metrics_values = {metric: (0, 0) for metric in ['Light', 'Water', 'Soil Moisture', 'Temperature', 'Humidity']}
 
 # Continuous loop to update metrics and line charts
 while True:
@@ -89,17 +89,14 @@ while True:
         # Calculate differences between previous and current data
         differences = df.diff().iloc[-1]
 
-        # Update metrics values
+        # Update metrics values only when they change
         for metric in metrics_values:
             if metric in df.columns:
                 current_value = df[metric].iloc[-1]
                 delta_value = differences[metric] if not differences.empty else 0
-                metrics_values[metric] = (current_value, delta_value)
-
-        # Update metrics display
-        for i, metric in enumerate(metrics_values):
-            current_value, delta_value = metrics_values[metric]
-            metric_columns[i].metric(metric, value=current_value, delta=delta_value)
+                if (current_value, delta_value) != metrics_values[metric]:
+                    metrics_values[metric] = (current_value, delta_value)
+                    metric_columns[list(metrics_values.keys()).index(metric)].metric(metric, value=current_value, delta=delta_value)
 
         # Create real-time line chart
         fig_realtime = create_line_chart(df.tail(2000), 'Real-Time Sensor Readings')
@@ -113,4 +110,4 @@ while True:
         hourly_placeholder.plotly_chart(fig_hourly, use_container_width=True)
 
     # Pause briefly before fetching new data and updating the charts
-    time.sleep(5)  # Adjust the pause duration as needed
+    time.sleep(60)  # Adjust the pause duration as needed
