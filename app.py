@@ -5,16 +5,16 @@ import pandas as pd
 import plotly.express as px
 import time
 
-# Add an image to the top of your Streamlit app
-st.image('/Users/juanarizti/Desktop/Herbie/mqdc-idyllias-logo.png', use_column_width=True)
+# Add an image to the top of Streamlit app
+st.image('mqdc-idyllias-logo.png', use_column_width=True)
 
-# Add a title to your Streamlit app
+# Add a title to Streamlit app
 st.title('Herbie Sensor Readings')
 st.subheader('Welcome to the sensor data dashboard')
 st.write('Here you can see the latest sensor readings from the Herbie project.')
 
-# Path to your JSON key file
-SERVICE_ACCOUNT_FILE = '/Users/juanarizti/Desktop/Herbie/herbie_key.json'
+# Path to JSON key file
+SERVICE_ACCOUNT_FILE = 'herbie_key.json'
 
 # Define the scope
 SCOPES = [
@@ -40,9 +40,11 @@ def fetch_data():
     # Convert the records to a pandas DataFrame
     df = pd.DataFrame(data)
 
+    df.rename(columns={'TimeString': 'Time', 'Temp': 'Temperature', 'Moist': 'Soil Moisture', 'Humid': 'Humidity'}, inplace=True)
+
     # Ensure 'TimeString' is datetime and set as index
-    df['TimeString'] = pd.to_datetime(df['TimeString'])
-    df.set_index('TimeString', inplace=True)
+    df['Time'] = pd.to_datetime(df['Time'])
+    df.set_index('Time', inplace=True)
 
     # Drop unwanted columns
     unwanted_columns = ['Herbie_ID']
@@ -60,34 +62,50 @@ def fetch_data():
 
     return df
 
+
 # Function to create line chart
 def create_line_chart(df, title):
-    fig = px.line(df, x=df.index, y=['Light', 'Water', 'Moist', 'Temp', 'Humid'],
-                  labels={'value': 'Value', 'index': 'DateTime'},
+    fig = px.line(df, x=df.index, y=df.columns,
+                  labels={'value': 'Value', 'index': 'Time'},
                   title=title,
-                  color_discrete_map={'Light': 'blue', 'Water': 'green', 'Moist': 'red', 'Temp': 'orange', 'Humid': 'purple'},
+                  color_discrete_map={'Light': 'blue', 'Water': 'green', 'Soil Moisture': 'red', 'Temperature': 'orange', 'Humidity': 'purple'},
                   line_dash_sequence=['solid']*5)  # Ensure solid lines for all sensors
     return fig
 
-# Create placeholders for line charts
+# Create placeholders for metrics
+metric_columns = st.columns(5)
+
+# Placeholder for line charts
 realtime_placeholder = st.empty()
 hourly_placeholder = st.empty()
 
-# Continuous loop to update line charts
+# Continuous loop to update metrics and line charts
 while True:
     # Fetch real-time data
     df = fetch_data()
 
-    # Create real-time line chart
-    fig_realtime = create_line_chart(df.tail(2000), 'Real-Time Sensor Readings (Last 2000 Timestamps)')
-    realtime_placeholder.plotly_chart(fig_realtime, use_container_width=True)
+    if not df.empty:
+        # Calculate differences between previous and current data
+        differences = df.diff().iloc[-1]
 
-    # Resample data to hourly intervals and calculate the mean value
-    df_hourly_avg = df.resample('H').mean()
+        # Update metrics values and deltas
+        metrics = ['Light', 'Water', 'Soil Moisture', 'Temperature', 'Humidity']
+        for i, col in enumerate(metrics):
+            if col in df.columns:
+                current_value = df[col].iloc[-1]
+                delta_value = differences[col] if not differences.empty else 0
+                metric_columns[i].metric(col, value=current_value, delta=delta_value)
 
-    # Create hourly line chart
-    fig_hourly = create_line_chart(df_hourly_avg, 'Average Hourly Sensor Readings')
-    hourly_placeholder.plotly_chart(fig_hourly, use_container_width=True)
+        # Create real-time line chart
+        fig_realtime = create_line_chart(df.tail(2000), 'Real-Time Sensor Readings')
+        realtime_placeholder.plotly_chart(fig_realtime, use_container_width=True)
+
+        # Resample data to hourly intervals and calculate the mean value
+        df_hourly_avg = df.resample('H').mean()
+
+        # Create hourly line chart
+        fig_hourly = create_line_chart(df_hourly_avg, 'Average Hourly Sensor Readings')
+        hourly_placeholder.plotly_chart(fig_hourly, use_container_width=True)
 
     # Pause briefly before fetching new data and updating the charts
     time.sleep(5)  # Adjust the pause duration as needed
