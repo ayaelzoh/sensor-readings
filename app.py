@@ -48,7 +48,7 @@ def fetch_data():
     df.set_index('Time', inplace=True)
 
     # Drop unwanted columns
-    unwanted_columns = ['Herbie_ID', 'Light_Change', 'Water_Change']
+    unwanted_columns = ['Herbie_ID']
     df.drop(columns=unwanted_columns, inplace=True, errors='ignore')
 
     # Select data starting from index 17302 (if exists)
@@ -73,9 +73,18 @@ def create_line_chart(df, title):
     return fig
 
 # Create placeholders for metrics and line charts
-metric_placeholders = [st.empty() for _ in range(5)]
+metric_columns = st.columns(5)
 realtime_placeholder = st.empty()
 hourly_placeholder = st.empty()
+
+# Function to update metrics
+def update_metrics(df, differences):
+    metrics = ['Light', 'Water', 'Soil Moisture', 'Temperature', 'Humidity']
+    for i, col in enumerate(metrics):
+        if col in df.columns:
+            current_value = df[col].iloc[-1]
+            delta_value = differences[col] if not differences.empty else 0
+            metric_columns[i].metric(col, value=current_value, delta=delta_value)
 
 # Continuous loop to update metrics and line charts
 while True:
@@ -86,13 +95,8 @@ while True:
         # Calculate differences between previous and current data
         differences = df.diff().iloc[-1]
 
-        # Update metrics values and deltas
-        metrics = ['Light', 'Water', 'Soil Moisture', 'Temperature', 'Humidity']
-        for i, col in enumerate(metrics):
-            if col in df.columns:
-                current_value = df[col].iloc[-1]
-                delta_value = differences[col] if not differences.empty else 0
-                metric_placeholders[i].metric(col, value=current_value, delta=delta_value)
+        # Update metrics
+        update_metrics(df, differences)
 
         # Create real-time line chart
         fig_realtime = create_line_chart(df.tail(2000), 'Real-Time Sensor Readings')
