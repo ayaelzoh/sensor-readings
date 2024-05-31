@@ -33,6 +33,7 @@ spreadsheet = client.open("HerbieData")
 sheet = spreadsheet.worksheet("Forestias-0001")
 
 # Function to fetch data from Google Sheet and preprocess it
+@st.cache_data(ttl=60)  # Cache the data for 60 seconds to prevent continuous repetition
 def fetch_data():
     # Fetch all records from the sheet
     data = sheet.get_all_records()
@@ -47,7 +48,7 @@ def fetch_data():
     df.set_index('Time', inplace=True)
 
     # Drop unwanted columns
-    unwanted_columns = ['Herbie_ID']
+    unwanted_columns = ['Herbie_ID', 'Light_Change', 'Water_Change']
     df.drop(columns=unwanted_columns, inplace=True, errors='ignore')
 
     # Select data starting from index 17302 (if exists)
@@ -62,20 +63,17 @@ def fetch_data():
 
     return df
 
-
 # Function to create line chart
 def create_line_chart(df, title):
-    fig = px.line(df, x=df.index, y=df.columns,
+    fig = px.line(df, x=df.index, y=['Light', 'Water', 'Soil Moisture', 'Temperature', 'Humidity'],
                   labels={'value': 'Value', 'index': 'Time'},
                   title=title,
                   color_discrete_map={'Light': 'blue', 'Water': 'green', 'Soil Moisture': 'red', 'Temperature': 'orange', 'Humidity': 'purple'},
                   line_dash_sequence=['solid']*5)  # Ensure solid lines for all sensors
     return fig
 
-# Create placeholders for metrics
+# Create placeholders for metrics and line charts
 metric_columns = st.columns(5)
-
-# Placeholder for line charts
 realtime_placeholder = st.empty()
 hourly_placeholder = st.empty()
 
@@ -108,4 +106,4 @@ while True:
         hourly_placeholder.plotly_chart(fig_hourly, use_container_width=True)
 
     # Pause briefly before fetching new data and updating the charts
-    time.sleep(5)  # Adjust the pause duration as needed
+    time.sleep(60)  # Adjust the pause duration as needed
