@@ -77,6 +77,9 @@ metric_columns = st.columns(5)
 realtime_placeholder = st.empty()
 hourly_placeholder = st.empty()
 
+# Flag variable to track if metrics have been displayed
+metrics_displayed = False
+
 # Function to update metrics
 def update_metrics(df, differences):
     metrics = ['Light', 'Water', 'Soil Moisture', 'Temperature', 'Humidity']
@@ -95,8 +98,10 @@ while True:
         # Calculate differences between previous and current data
         differences = df.diff().iloc[-1]
 
-        # Update metrics
-        update_metrics(df, differences)
+        # Update metrics only if they haven't been displayed yet
+        if not metrics_displayed:
+            update_metrics(df, differences)
+            metrics_displayed = True
 
         # Create real-time line chart
         fig_realtime = create_line_chart(df.tail(2000), 'Real-Time Sensor Readings')
