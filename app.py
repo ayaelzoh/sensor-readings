@@ -73,7 +73,7 @@ def create_line_chart(df, title):
     return fig
 
 # Create placeholders for metrics and line charts
-metric_columns = st.columns(5)
+metric_placeholders = [st.empty() for _ in range(5)]
 realtime_placeholder = st.empty()
 hourly_placeholder = st.empty()
 
@@ -92,7 +92,7 @@ while True:
             if col in df.columns:
                 current_value = df[col].iloc[-1]
                 delta_value = differences[col] if not differences.empty else 0
-                metric_columns[i].metric(col, value=current_value, delta=delta_value)
+                metric_placeholders[i].metric(col, value=current_value, delta=delta_value)
 
         # Create real-time line chart
         fig_realtime = create_line_chart(df.tail(2000), 'Real-Time Sensor Readings')
